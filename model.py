@@ -27,8 +27,8 @@ class fast_weights_model(nn.Module):
         super(fast_weights_model, self).__init__()
         self.x = Variable(torch.randn(batch_size, step_num, elem_num).type(torch.float32))
         self.y = Variable(torch.randn(batch_size, elem_num).type(torch.float32))
-        self.l = torch.zeros(1, dtype=torch.float32)
-        self.e = torch.zeros(1, dtype=torch.float32)
+        self.l = torch.tensor([0.9], dtype=torch.float32)
+        self.e = torch.tensor([0.5], dtype=torch.float32)
 
         self.w1 = Variable(torch.empty(elem_num, 50).uniform_(-np.sqrt(0.02), np.sqrt(0.02)))
         self.b1 = Variable(torch.zeros([1, 50]).type(torch.float32))
@@ -47,6 +47,8 @@ class fast_weights_model(nn.Module):
         self.b = Variable(torch.ones([1, hidden_num]).type(torch.float32))
 
     def forward(self, bx, by)
+        self.x = bx
+        self.y = by
         a = torch.zeros([batch_size, hidden_num, hidden_num]).type(torch.float32)
         h = torch.zeros([batch_size, hidden_num]).type(torch.float32)
 
@@ -92,6 +94,7 @@ def train(self, save = 0, verbose = 0):
     writer = SummaryWriter(logdir=os.path.join(cfg.logdir, cfg.exp_name), flush_secs=30)
     checkpointer = Checkpointer(os.path.join(cfg.checkpointdir, cfg.exp_name))
     start_epoch = 0
+    start_epoch = checkpointer.load(model, optimizer)
     batch_idxs = 600
     for epoch in range(start_epoch, cfg.train.max_epochs):
         for idx in range(batch_idxs):
