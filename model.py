@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os
 import torch
 import numpy as np
 import torch.nn as nn
@@ -23,39 +24,53 @@ def softmax_cross_entropy_with_logits(logits, labels):
 
 class fast_weights_model(nn.Module):
     """docstring for fast_weights_model"""
-    def __init__(self, batch_size, step_num, elem_num, hidden_num):
+    def __init__(self, args):
         super(fast_weights_model, self).__init__()
+        self.batch_size = args.batch_size
         # Inputs
-        self.x = Variable(torch.randn(batch_size, step_num, elem_num).type(torch.float32))
+        self.X = Variable(torch.randn(args.batch_size, args.input_dim, args.num_classes).type(torch.float32))
         # Targets
-        self.y = Variable(torch.randn(batch_size, elem_num).type(torch.float32))
+        self.y = Variable(torch.randn(args.batch_size, args.num_classes).type(torch.float32))
         # Learning Rate
-        self.l = torch.tensor([0.9], dtype=torch.float32)
+        self.l = torch.tensor([args.learning_rate], dtype=torch.float32)
         # Decay Rate
-        self.e = torch.tensor([0.5], dtype=torch.float32)
+        self.e = torch.tensor([args.decay_rate], dtype=torch.float32)
 
         # Input Weights 
-        self.w1 = Variable(torch.empty(elem_num, 50).uniform_(-np.sqrt(0.02), np.sqrt(0.02)))
-        self.b1 = Variable(torch.zeros([1, 50]).type(torch.float32))
-        self.w2 = Variable(torch.empty(500, 100).uniform_(-np.sqrt(0.01), np.sqrt(0.01)))
-        self.b2 = Variable(torch.zeros([1, 100]).type(torch.float32))
-        self.w3 = Variable(torch.empty(hidden_num, 100).uniform_(-np.sqrt(0.01), np.sqrt(0.01)))
-        self.b3 = Variable(torch.zeros([1, 100]).type(torch.float32))
-        self.w4 = Variable(torch.empty(100, elem_num).uniform_(-np.sqrt(1.0 / elem_num), np.sqrt(1.0 / elem_num)))
-        self.b4 = Variable(torch.zeros([1, elem_num]).type(torch.float32))
+        self.W_x = Variable(torch.empty(
+                        args.num_classes, 
+                        args.hidden_size).uniform_(
+                            -np.sqrt(2.0/args.num_classes),
+                            np.sqrt(2.0/args.num_classes)
+                    ), dtype=torch.float32)
+        self.b_x = Variable(torch.zeros(
+            [args.hidden_size]
+        ), dtype=torch.float32)
 
-        self.w = Variable(torch.tensor(0.05 * np.identity(hidden_num)).type(torch.float32))
+        # Hidden weights (initialization explained in Hinton video)
+        self.W_h = Variable(initial_value=0.5 * np.identity(args.hidden_size), 
+                                                        dtype=torch.float32)
 
-        self.c = Variable(torch.empty(100, hidden_num).uniform_(-np.sqrt(hidden_num), np.sqrt(hidden_num)))
+        # Softmax weights
+        self.W_softmax = Variable(torch.empty(
+                                args.hidden_size, 
+                                args.num_classes).uniform_(
+                                    -np.sqrt(2.0/args.hidden_size),
+                                    np.sqrt(2.0/args.hidden_size)  
+                                ), dtype=torch.float32)
+        self.b_softmax = Variable(torch.zeros(args.num_classes),
+                                            dtype=torch.float32)
 
-        self.g = Variable(torch.ones([1, hidden_num]).type(torch.float32))
-        self.b = Variable(torch.ones([1, hidden_num]).type(torch.float32))
+        # Scale and shift everything for layernorm
+        self.gain = Variable(torch.ones(args.hidden_size), dtype=torch.float32) 
+        self.bias = Variable(torch.zeros(args.hidden_size), dtype=torch.float32)
+
 
     def forward(self, bx, by):
         self.x = bx
         self.y = by
-        a = torch.zeros([batch_size, hidden_num, hidden_num]).type(torch.float32)
-        h = torch.zeros([batch_size, hidden_num]).type(torch.float32)
+        a = torch.zeros([self.batch_size, hidden_num, hidden_num]).type(torch.float32)
+        h = torch.zeros([self.batch_size, hidden_num]).type(torch.float32)
 
         la = []
 
@@ -65,7 +80,7 @@ class fast_weights_model(nn.Module):
 
             h = torch.relu(torch.matmul(h, self.w) + torch.matmul(z, self.c))
 
-            hs = torch.reshape(h, [batch_size, 1, hidden_num])
+            hs = torch.reshape(h, [self.batch_size, 1, hidden_num])
 
             hh = hs
 
@@ -80,7 +95,7 @@ class fast_weights_model(nn.Module):
                 sig = torch.sqrt(torch.mean(torch.pow((hs - mu), 2), 0))
                 hs = torch.relu(torch.div(torch.mul(self.g, (hs - mu)), sig) + self.b)
 
-            h = torch.reshape(hs, [batch_size, hidden_num])
+            h = torch.reshape(hs, [self.batch_size, hidden_num])
 
         h = torch.relu(torch.matmul(h, self.w3) + self.b3)
         logits = torch.matmul(h, self.w4) + self.b4
