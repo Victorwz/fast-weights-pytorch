@@ -1,6 +1,9 @@
 import numpy as np
 import random
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 num_train = 60000
 num_val = 10000
@@ -36,7 +39,7 @@ def generate_one():
 
     for i in range(0, step_num):
         c = random.randint(0, 25)
-        while d.has_key(c):
+        while d.get(c):
             c = random.randint(0, 25)
         b = random.randint(0, 9)
         d[c] = b
@@ -45,14 +48,16 @@ def generate_one():
         a[i*2] = get_one_hot(s)
         a[i*2+1] = get_one_hot(t)
 
-    s = random.choice(d.keys())
+    s = random.choice(list(d.keys()))
     t = chr(s + ord('a'))
     r = chr(d[s] + ord('0'))
     a[step_num * 2] = get_one_hot('?')
     a[step_num * 2 + 1] = get_one_hot('?')
     a[step_num * 2 + 2] = get_one_hot(t)
     st += '??' + t + r
+
     e = get_one_hot(r)
+
     return a, e
 
 if __name__ == '__main__':

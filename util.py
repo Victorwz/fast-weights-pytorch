@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch import optim
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 class Checkpointer:
     def __init__(self, path, max_num=3):
@@ -19,8 +19,8 @@ class Checkpointer:
             with open(self.listfile, 'wb') as f:
                 model_list = []
                 pickle.dump(model_list, f)
-        
-    
+
+
     def save(self, model, optimizer, epoch):
         checkpoint = {
             'model': model.state_dict(),
@@ -38,10 +38,10 @@ class Checkpointer:
             model_list.append(filename)
         with open(self.listfile, 'rb+') as f:
             pickle.dump(model_list, f)
-            
+
         with open(filename, 'wb') as f:
             torch.save(checkpoint, f)
-    
+
     def load(self, model, optimizer):
         """
         Return starting epoch

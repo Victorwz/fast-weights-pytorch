@@ -5,7 +5,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from config import cfg
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from torch.autograd import Variable
 import time
 from retrieval import read_data
@@ -25,17 +25,22 @@ class fast_weights_model(nn.Module):
     """docstring for fast_weights_model"""
     def __init__(self, batch_size, step_num, elem_num, hidden_num):
         super(fast_weights_model, self).__init__()
+        # Inputs
         self.x = Variable(torch.randn(batch_size, step_num, elem_num).type(torch.float32))
+        # Targets
         self.y = Variable(torch.randn(batch_size, elem_num).type(torch.float32))
+        # Learning Rate
         self.l = torch.tensor([0.9], dtype=torch.float32)
+        # Decay Rate
         self.e = torch.tensor([0.5], dtype=torch.float32)
 
+        # Input Weights 
         self.w1 = Variable(torch.empty(elem_num, 50).uniform_(-np.sqrt(0.02), np.sqrt(0.02)))
         self.b1 = Variable(torch.zeros([1, 50]).type(torch.float32))
         self.w2 = Variable(torch.empty(500, 100).uniform_(-np.sqrt(0.01), np.sqrt(0.01)))
         self.b2 = Variable(torch.zeros([1, 100]).type(torch.float32))
         self.w3 = Variable(torch.empty(hidden_num, 100).uniform_(-np.sqrt(0.01), np.sqrt(0.01)))
-        self.b3 = Variable(torch.zeros([1, 100]).type(torch.float32)) 
+        self.b3 = Variable(torch.zeros([1, 100]).type(torch.float32))
         self.w4 = Variable(torch.empty(100, elem_num).uniform_(-np.sqrt(1.0 / elem_num), np.sqrt(1.0 / elem_num)))
         self.b4 = Variable(torch.zeros([1, elem_num]).type(torch.float32))
 
@@ -46,7 +51,7 @@ class fast_weights_model(nn.Module):
         self.g = Variable(torch.ones([1, hidden_num]).type(torch.float32))
         self.b = Variable(torch.ones([1, hidden_num]).type(torch.float32))
 
-    def forward(self, bx, by)
+    def forward(self, bx, by):
         self.x = bx
         self.y = by
         a = torch.zeros([batch_size, hidden_num, hidden_num]).type(torch.float32)
@@ -85,12 +90,13 @@ class fast_weights_model(nn.Module):
 
         return self.loss, self.acc
 
-def train(self, save = 0, verbose = 0):
-    model = fast_weights_model(STEP_NUM, ELEM_NUM, HIDDEN_NUM)
+def train(save = 0, verbose = 0):
+    BATCH_SIZE = 60000
+    model = fast_weights_model(BATCH_SIZE, STEP_NUM, ELEM_NUM, HIDDEN_NUM)
     model.train()
     batch_size = cfg.train.batch_size
     start_time = time.time()
-    optimizer = torch.optim.Adam(model.paramters(), lr=cfg.train.model_lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.train.model_lr)
     writer = SummaryWriter(logdir=os.path.join(cfg.logdir, cfg.exp_name), flush_secs=30)
     checkpointer = Checkpointer(os.path.join(cfg.checkpointdir, cfg.exp_name))
     start_epoch = 0
