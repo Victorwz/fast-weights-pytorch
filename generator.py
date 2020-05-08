@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import cPickle as pickle
+import pickle
 
 num_train = 60000
 num_val = 10000

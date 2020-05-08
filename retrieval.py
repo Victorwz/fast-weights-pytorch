@@ -1,9 +1,6 @@
 import numpy as np
 import collections
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 
 Datasets = collections.namedtuple('Datasets', ['train', 'val', 'test'])
@@ -40,10 +37,13 @@ class Dataset(object):
             start = 0
             self._index_in_epoch = batch_size
         end = self._index_in_epoch
+        #print(end)
+        #print(self._x[self.perm[start:end]], self._x[self.perm[start:end]].type)
         return self._x[self.perm[start:end]], self._y[self.perm[start:end]]
 
 
-def read_data(data_path='associative-retrieval.pkl'):
+def read_data():
+    data_path='associative-retrieval.pkl'
     with open(data_path, 'rb') as f:
         d = pickle.load(f)
     x_train = d['x_train']
